@@ -1,0 +1,14 @@
+Dataset taken from:
+https://www.kaggle.com/nicapotato/womens-ecommerce-clothing-reviews/version/1
+
+The .csv file contains the following columns
+- Clothing ID: Unique ID of the product
+- Age: Age of the reviewer
+- Title: Title of the review
+- Review Text: Product review
+- Rating: Product rating by reviewer
+- Recommended IND: Whether the product is recommended or not by the reviewer (0 or 1)
+- Positive Feedback Count: Number of positive feedback on the review
+- Division Name: Name of the division product is in
+- Department NameN: ame of the department product is in
+- Class Name: Type of product
