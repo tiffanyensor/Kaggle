@@ -36,7 +36,8 @@ n_cols = data.shape[1]
 # ------------------------
 
 data.ClothingID.isnull().sum()                  # no missing values
-print("There are ",data.ClothingID.nunique()," unique items.")
+data.ClothingID.nunique()                       # 
+
 
 
 # Explore variable: Age
@@ -47,6 +48,17 @@ data.Age.mean()                                 # 43.198
 data.Age.median()                               # 41.0
 data.Age.min()                                  # 18
 data.Age.max()                                  # 99
+
+data['BinnedAge'] = pd.cut(data.Age, bins=[10,20,30,40,50,60,70,80,90,100])
+
+counts_by_rating = data.groupby(by=['Rating']).count()
+age_by_rating = data.Age.groupby(by=[data.Rating]).count()
+
+plt.hist(data.Age, bins=[10,20,30,40,50,60,70,80,90,100])
+plt.xlabel("Age", fontsize=14)
+plt.ylabel("Number of Customers", fontsize=14)
+plt.title("Hisotgram of Age Distribution", fontsize=16)
+plt.show()
 
 
 # Explore variable: Title
@@ -63,9 +75,14 @@ data.Review.isnull().sum()                      # 845 missing values
 # Explore variable: Rating
 # ------------------------
 data.Rating.isnull().sum()                      # no missing values
-data.Rating.mean()
-data.Rating.median()
+data.Rating.mean()                              # 4.196
+data.Rating.median()                            # 5.0
 data.Rating.value_counts()
+
+plt.bar(data.Rating.value_counts().keys().tolist(), data.Rating.value_counts().tolist())
+plt.title("Ratings by Frquency", fontsize=16)
+plt.xlabel("Rating")
+plt.show()
 
 
 # Explore variable: Recommend
@@ -213,14 +230,147 @@ data.Class[23011] = 'Legwear'
 
 
 
+#----------------------
+# BUILD DATASET
+#----------------------
+
+
+reviews = []
+label = []
+
+# ignore missing review text data
+for i in range(0, len(data.Review)):
+    if pd.isnull(data.Review[i]) == False:
+        reviews.append(data.Review[i])
+        label.append(data.Rating[i])
+
 
 #----------------------
-# WORD MAP
+# SENTIMENT ANALYSIS
 #----------------------
 
 
+import nltk
+import string
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+import re
+
+stop_words = set(stopwords.words('english'))
+lemmatizer = WordNetLemmatizer()
 
 
+# tokenizer function
+def my_tokenizer(review):
+    review = review.lower()                                 # convert to lowercase
+    tokens = review.split()                                 # split review into words
+    tokens = [t for t in tokens if t.isalpha()]             # remove non-alpha characters                               # convert to lowercase
+    tokens = [lemmatizer.lemmatize(t) for t in tokens]      # lemmatize
+    tokens = [t for t in tokens if len(t) > 2]              # remove short words
+    tokens = [t for t in tokens if t not in stop_words]     # remove stopwords
+    return tokens
+
+corpus = []
+from nltk.stem.porter import PorterStemmer
+stemmer = PorterStemmer()
+for i in range(0, len(reviews)):
+#for i in range(0, 5):
+    tokens = my_tokenizer(reviews[i]) 
+    text_review = " "
+    review = reviews[i]
+    review = my_tokenizer(review)
+#    review = review.split()
+#    review = [word.lower() for word in review]
+#    review = [word for word in review if word.isalpha()]
+#    review = [lemmatizer.lemmatize(word) for word in review]
+    review = [stemmer.stem(word) for word in review]
+#    review = [word for word in review if len(word) > 2]
+#    review = [word for word in review if word not in stop_words]
+    for word in review:
+        text_review = text_review + " " + word
+    corpus.append(text_review)
+    
+#    corpus.append(tokens)
+
+from sklearn.feature_extraction.text import CountVectorizer
+cv = CountVectorizer()
+
+X = cv.fit_transform(corpus).toarray()
+
+# pos has rating 4 or 5, neutral has 3, neg has 1 or 2
+y = [0]*len(label)   # initialize as zeros instead
+for index, val in enumerate(label):
+    if val==1 or val==2:
+        y[index] = -1
+    elif val == 3:
+        y[index] = 0
+    else:
+        y[index] = 1
+
+
+from sklearn.cross_validation import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+
+from sklearn.linear_model import LogisticRegression
+classifier = LogisticRegression()
+classifier.fit(X_train, y_train)
+
+y_pred = classifier.predict(X_test)
+from sklearn.metrics import confusion_matrix
+cm = confusion_matrix(y_test, y_pred)
+
+print("confusion matrix: ")
+print(cm)
+
+
+      
+# Separate into positive ratings (5 and 4) and negative reviews (1 and 2)
+pos_reviews = []
+neg_reviews = []
+
+for i in range(len(reviews)):
+    if (y[i] == 1 or y[i] == 2)==False:
+        neg_reviews.append(reviews[i])          # 5193 neg reviews
+    if (y[i] == 5 or y[i]==4)==False:
+        pos_reviews.append(reviews[i])          # 22641 pos reviews
+
+
+
+#----------------------
+# WORD CLOUD
+#----------------------
+      
+        
+neg_word_string = ''
+for rev in neg_reviews:
+    tokens = my_tokenizer(rev)
+    for word in tokens:
+        neg_word_string = neg_word_string + ' ' + word
+   
+from wordcloud import WordCloud
+
+# The words "fit", "dress", "top", "fabric" appear in both, so remove them
+
+wordcloud = WordCloud(height=500, width=500, background_color="white", max_words=100, stopwords=['fit', 'dress', 'top', 'fabric']).generate(neg_word_string)
+plt.figure(figsize = (7,7))
+plt.imshow(wordcloud)
+plt.title('Word Cloud for Negative Reviews', fontsize=18)
+plt.axis('off')
+plt.show()
+
+
+pos_word_string = ''
+for rev in pos_reviews:
+    tokens = my_tokenizer(rev)
+    for word in tokens:
+        pos_word_string = pos_word_string + ' ' + word
+
+wordcloud = WordCloud(height=500, width=500, background_color="white", max_words = 100, stopwords=['fit', 'dress', 'top', 'fabric']).generate(pos_word_string)
+plt.figure(figsize = (7,7))
+plt.imshow(wordcloud)
+plt.title('Word Cloud for Positive Reviews', fontsize=18)
+plt.axis('off')
+plt.show()
 
 
 
