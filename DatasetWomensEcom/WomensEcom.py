@@ -130,10 +130,10 @@ data.Class.isnull().sum()                       # 14 missing values
 data.Class.unique()  
 data.Class.value_counts()            
 
-# Casual bottoms appear only twice - reclassify as Pants
+# Casual bottoms appear only twice - reclassify as Pants?
 
 
-# Chemises appears only once - reclassify as Blouses
+# Chemises appears only once - reclassify as Blouses?
         
         
         
@@ -282,23 +282,15 @@ corpus = []
 from nltk.stem.porter import PorterStemmer
 stemmer = PorterStemmer()
 for i in range(0, len(reviews)):
-#for i in range(0, 5):
     tokens = my_tokenizer(reviews[i]) 
     text_review = " "
     review = reviews[i]
     review = my_tokenizer(review)
-#    review = review.split()
-#    review = [word.lower() for word in review]
-#    review = [word for word in review if word.isalpha()]
-#    review = [lemmatizer.lemmatize(word) for word in review]
     review = [stemmer.stem(word) for word in review]
-#    review = [word for word in review if len(word) > 2]
-#    review = [word for word in review if word not in stop_words]
     for word in review:
         text_review = text_review + " " + word
     corpus.append(text_review)
     
-#    corpus.append(tokens)
 
 from sklearn.feature_extraction.text import CountVectorizer
 cv = CountVectorizer(max_features=10000)
@@ -306,7 +298,8 @@ cv = CountVectorizer(max_features=10000)
 X = cv.fit_transform(corpus).toarray()
 
 # pos has rating 4 or 5, neutral has 3, neg has 1 or 2
-y = [0]*len(label)   # initialize as zeros instead
+
+y = [0]*len(label)
 for index, val in enumerate(label):
     if val==1 or val==2:                # negative review
         y[index] = -1
