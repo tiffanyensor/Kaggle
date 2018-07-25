@@ -2,6 +2,7 @@ Dataset taken from:
 https://www.kaggle.com/nicapotato/womens-ecommerce-clothing-reviews/version/1
 
 The .csv file contains the following columns
+-------------------------------------------------
 - Clothing ID: Unique ID of the product
 - Age: Age of the reviewer
 - Title: Title of the review
@@ -12,3 +13,12 @@ The .csv file contains the following columns
 - Division Name: Name of the division product is in
 - Department NameN: ame of the department product is in
 - Class Name: Type of product
+
+
+Work done:
+-------------------------------------------------
+- Created word clouds for Positive and Negative words
+
+
+Insights/Conclusions:
+-------------------------------------------------
