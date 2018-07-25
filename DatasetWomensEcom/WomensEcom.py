@@ -56,9 +56,11 @@ age_by_rating = data.Age.groupby(by=[data.Rating]).count()
 
 plt.hist(data.Age, bins=[10,20,30,40,50,60,70,80,90,100])
 plt.xlabel("Age", fontsize=14)
-plt.ylabel("Number of Customers", fontsize=14)
+plt.ylabel("Count", fontsize=14)
 plt.title("Hisotgram of Age Distribution", fontsize=16)
+plt.savefig("AgeHistogram.pdf")
 plt.show()
+
 
 
 # Explore variable: Title
@@ -68,7 +70,7 @@ data.Title.isnull().sum()                       # 3810 missing values
 
 # Explore variable: Review
 # ------------------------
-data.Review.isnull().sum()                      # 845 missing values
+data.Review.isnull().sum()                      # 845 missing values (22641 total reviews)
 
 
 
@@ -79,9 +81,15 @@ data.Rating.mean()                              # 4.196
 data.Rating.median()                            # 5.0
 data.Rating.value_counts()
 
+xdata = data.Rating.value_counts().keys().tolist()
+ydata = data.Rating.value_counts().tolist()
 plt.bar(data.Rating.value_counts().keys().tolist(), data.Rating.value_counts().tolist())
-plt.title("Ratings by Frquency", fontsize=16)
+plt.title("Rating Histogram", fontsize=16)
 plt.xlabel("Rating")
+plt.ylabel("Count")
+for i in range(0,5):
+    plt.text(xdata[i]-0.2, ydata[i]+100, str(ydata[i]))
+plt.savefig("RatingHistogram.pdf")
 plt.show()
 
 
@@ -293,19 +301,19 @@ for i in range(0, len(reviews)):
 #    corpus.append(tokens)
 
 from sklearn.feature_extraction.text import CountVectorizer
-cv = CountVectorizer()
+cv = CountVectorizer(max_features=10000)
 
 X = cv.fit_transform(corpus).toarray()
 
 # pos has rating 4 or 5, neutral has 3, neg has 1 or 2
 y = [0]*len(label)   # initialize as zeros instead
 for index, val in enumerate(label):
-    if val==1 or val==2:
+    if val==1 or val==2:                # negative review
         y[index] = -1
-    elif val == 3:
+    elif val == 3:                      # neutral review
         y[index] = 0
     else:
-        y[index] = 1
+        y[index] = 1                    # positive review
 
 
 from sklearn.cross_validation import train_test_split
@@ -317,11 +325,12 @@ classifier.fit(X_train, y_train)
 
 y_pred = classifier.predict(X_test)
 from sklearn.metrics import confusion_matrix
+from sklearn.metrics import accuracy_score
 cm = confusion_matrix(y_test, y_pred)
 
-print("confusion matrix: ")
+print("Confusion matrix: ")
 print(cm)
-
+print("Accuracy = ",accuracy_score(y_test, y_pred))
 
       
 # Separate into positive ratings (5 and 4) and negative reviews (1 and 2)
@@ -329,10 +338,10 @@ pos_reviews = []
 neg_reviews = []
 
 for i in range(len(reviews)):
-    if (y[i] == 1 or y[i] == 2)==False:
-        neg_reviews.append(reviews[i])          # 5193 neg reviews
-    if (y[i] == 5 or y[i]==4)==False:
-        pos_reviews.append(reviews[i])          # 22641 pos reviews
+    if (y[i] == -1):
+        neg_reviews.append(reviews[i])          # 2370 neg reviews
+    if (y[i] == 1):
+        pos_reviews.append(reviews[i])          # 17448 pos reviews
 
 
 
@@ -351,14 +360,14 @@ from wordcloud import WordCloud
 
 # The words "fit", "dress", "top", "fabric" appear in both, so remove them
 
-wordcloud = WordCloud(height=500, width=500, background_color="white", max_words=100, stopwords=['fit', 'dress', 'top', 'fabric']).generate(neg_word_string)
+wordcloud = WordCloud(height=500, width=500, background_color="white", colormap="inferno", max_words=100, stopwords=['fit', 'dress', 'top', 'fabric']).generate(neg_word_string)
 plt.figure(figsize = (7,7))
 plt.imshow(wordcloud)
 plt.title('Word Cloud for Negative Reviews', fontsize=18)
 plt.axis('off')
 plt.show()
 
-
+"""
 pos_word_string = ''
 for rev in pos_reviews:
     tokens = my_tokenizer(rev)
@@ -371,6 +380,6 @@ plt.imshow(wordcloud)
 plt.title('Word Cloud for Positive Reviews', fontsize=18)
 plt.axis('off')
 plt.show()
-
+"""
 
 
