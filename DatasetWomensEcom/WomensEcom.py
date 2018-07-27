@@ -6,9 +6,19 @@ Created on Tue Jul 24 08:55:27 2018
 @author: tiffanyensor
 """
 
-#----------------------
+# TO DO LIST:
+# TRY: making new features: e.g., combine all "tops", "blouses", "sweaters", etc. to a single new feature
+# Combine the 2 plot types into a single figure for easier comparability
+# MAKE a data frame containing the results: e.g., word, indexmap_index, n_occurance, n_pos_occ, n_neg_occ, % pos reviews, % neg revies, etc. 
+# Correct for more positive than negative reviews... need to either subsample pos or extrapolate neg or divide by n_words in rev
+# Better to run neutral reviews through? or just pos/neg
+# incorporate title into review
+
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Womens Ecom Dataset
-#----------------------
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 
 # Imports
 import matplotlib.pyplot as plt
@@ -23,9 +33,86 @@ pd.options.mode.chained_assignment = None
 data = pd.read_csv('Womens Clothing E-Commerce Reviews.csv', skiprows=1, names=['RowNumber', 'ClothingID', 'Age', 'Title', 'Review', 'Rating', 'Recommend', 'PosFeedback', 'Division', 'Department', 'Class'])
 
 
-#----------------------
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+# SOME PLOT FUNCTIONS
+##------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+
+
+def histogram_by_rating(binned_data, rating, var_name):
+    
+    d = {'binned_data': binned_data, 'rating': rating.astype(str)}
+    df = pd.DataFrame(d)
+    
+    # group data by rating and binned_data
+    data_by_rating = df.groupby(['binned_data', 'rating'])['binned_data'].count().unstack()
+    data_by_rating = data_by_rating.fillna(0)
+    bin_names=data_by_rating.index
+   
+    # set up plot area, leaving room for legend on the right
+    fig = plt.figure()
+    ax = plt.subplot(111)
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+    
+    # Stacked bar plots
+    p1=ax.bar(bin_names, data_by_rating['1'], color='red')
+    p2=ax.bar(bin_names, data_by_rating['2'], bottom=data_by_rating['1'], color='gold')
+    p3=ax.bar(bin_names, data_by_rating['3'], bottom=data_by_rating['2'], color='yellow')
+    p4=ax.bar(bin_names, data_by_rating['4'], bottom=data_by_rating['3'], color='palegreen')
+    p5=ax.bar(bin_names, data_by_rating['5'], bottom=data_by_rating['4'], color='mediumseagreen')
+
+    # Plot specifications and legend
+    ax.legend((p1, p2, p3, p4, p5), ('Rating = 1', 'Rating = 2', 'Rating = 3', 'Rating = 4', 'Rating = 5'), fontsize=11, loc = "upper left", bbox_to_anchor = (1, 1))
+    plt.title("Histogram of "+var_name, fontsize=16)
+    plt.xlabel(var_name, fontsize=14)
+    plt.xticks(rotation=90)
+    plt.ylabel("Count", fontsize=14)
+    plt.savefig(var_name+"Histogram.pdf", bbox_inches="tight")
+    plt.show()
+
+    
+def histogram_by_rating_by_percent(binned_data, rating, var_name):
+    
+    # convert to dataframe
+    d = {'binned_data': binned_data, 'rating': rating.astype(str)}
+    df = pd.DataFrame(d)
+
+    # group data by rating and binned_data
+    data_by_rating = df.groupby(['binned_data', 'rating'])['binned_data'].count().unstack()
+    data_by_rating = data_by_rating.fillna(0)
+    bin_names=data_by_rating.index
+    counts = data_by_rating.sum(axis=1)    # get sum across row, ie, sum for each group/category
+    
+    # set up plot area, leaving room for legend on the right
+    fig = plt.figure()
+    ax = plt.subplot(111)
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+    
+    # stacked barplots
+    p1 = ax.bar(bin_names, data_by_rating['1']/counts, color='red')
+    p2 = ax.bar(bin_names, data_by_rating['2']/counts, bottom=data_by_rating['1']/counts, color='gold')
+    p3 = ax.bar(bin_names, data_by_rating['3']/counts, bottom=data_by_rating['1']/counts + data_by_rating['2']/counts, color='yellow')
+    p4 = ax.bar(bin_names, data_by_rating['4']/counts, bottom=data_by_rating['1']/counts + data_by_rating['2']/counts + data_by_rating['3']/counts, color='palegreen')
+    p5 = ax.bar(bin_names, data_by_rating['5']/counts, bottom=data_by_rating['1']/counts + data_by_rating['2']/counts + data_by_rating['3']/counts + data_by_rating['4']/counts, color='mediumseagreen')
+
+    # Legend and plot specifications
+    ax.legend((p1, p2, p3, p4, p5), ('Rating = 1', 'Rating = 2', 'Rating = 3', 'Rating = 4', 'Rating = 5'), fontsize=12,loc = "upper left", bbox_to_anchor = (1, 1))
+    plt.xlabel(var_name, fontsize=14)
+    plt.xticks(rotation=90)
+    plt.ylabel("Percent", fontsize=14)
+    plt.title(var_name+" by percent", fontsize=16)
+    plt.savefig(var_name+"ByPercent.pdf", bbox_inches="tight")
+    plt.show() 
+    
+
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------    
 # EXPLORE THE DATA
-#----------------------
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 
 # number of rows, number of columns
 n_rows = data.shape[0]
@@ -49,23 +136,17 @@ data.Age.median()                               # 41.0
 data.Age.min()                                  # 18
 data.Age.max()                                  # 99
 
-data['BinnedAge'] = pd.cut(data.Age, bins=[10,20,30,40,50,60,70,80,90,100])
+labels=['(10-20]', '(20-30]', '(30-40]', '(40-50]', '(50-60]', '(60-70]', '(70-80]', '(80-90]', '(90-100]']
+data['BinnedAge'] = pd.cut(data.Age, bins=[10,20,30,40,50,60,70,80,90,100], labels=labels)
 
-counts_by_rating = data.groupby(by=['Rating']).count()
-age_by_rating = data.Age.groupby(by=[data.Rating]).count()
-
-plt.hist(data.Age, bins=[10,20,30,40,50,60,70,80,90,100])
-plt.xlabel("Age", fontsize=14)
-plt.ylabel("Count", fontsize=14)
-plt.title("Hisotgram of Age Distribution", fontsize=16)
-plt.savefig("AgeHistogram.pdf")
-plt.show()
-
+histogram_by_rating(data.BinnedAge, data.Rating, 'Age')  
+histogram_by_rating_by_percent(data.BinnedAge, data.Rating, 'Age')  
 
 
 # Explore variable: Title
 # ------------------------
 data.Title.isnull().sum()                       # 3810 missing values
+
 
 
 # Explore variable: Review
@@ -112,7 +193,8 @@ data.Division.isnull().sum()                    # 14 missing values
 data.Division.unique()                          # ['Initmates', 'General', 'General Petite', nan]
 data.Division.value_counts()
 
-
+histogram_by_rating(data.Division, data.Rating, 'Division')  
+histogram_by_rating_by_percent(data.Division, data.Rating, 'Division')  
 
 
 # Explore variable: Department
@@ -122,26 +204,33 @@ data.Department.isnull().sum()                  # 14 missing values
 data.Department.unique()                        # ['Intimate', 'Dresses', 'Bottoms', 'Tops', 'Jackets', 'Trend', nan]
 data.Department.value_counts()
 
+histogram_by_rating(data.Department, data.Rating, 'Department')    
+histogram_by_rating_by_percent(data.Department, data.Rating, 'Department')  
+
 
 # Explore variable: Class
 # ------------------------
         
 data.Class.isnull().sum()                       # 14 missing values
 data.Class.unique()  
-data.Class.value_counts()            
+data.Class.value_counts()   
+
+histogram_by_rating(data.Class, data.Rating, 'Class')    
+histogram_by_rating_by_percent(data.Class, data.Rating, 'Class')    
+
+# ratings: need to replace NAN with zero
 
 # Casual bottoms appear only twice - reclassify as Pants?
-
-
 # Chemises appears only once - reclassify as Blouses?
         
         
         
-        
-#----------------------
-# MISSING DATA
-#----------------------
-        
+#------------------------------------------------------------------------------        
+#------------------------------------------------------------------------------
+# REPLACE MISSING DATA
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------ 
+       
 print("The following rows are missing values: ")
 print("RowNumber\t ClothingID\t Division\t Department\t Class")
 print("----------------------------------------------------------------------")
@@ -237,11 +326,11 @@ data.Class[23011] = 'Legwear'
 #data.Class.value_counts()
 
 
-
-#----------------------
-# BUILD DATASET
-#----------------------
-
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+# PREPARE REVIEW DATA FOR NLP
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 
 reviews = []
 label = []
@@ -253,22 +342,20 @@ for i in range(0, len(data.Review)):
         label.append(data.Rating[i])
 
 
-#----------------------
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # SENTIMENT ANALYSIS
-#----------------------
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 
-
-import nltk
-import string
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
-import re
 
 stop_words = set(stopwords.words('english'))
 lemmatizer = WordNetLemmatizer()
 
 
-# tokenizer function
+# Tokenizer function
 def my_tokenizer(review):
     review = review.lower()                                 # convert to lowercase
     tokens = review.split()                                 # split review into words
@@ -278,27 +365,45 @@ def my_tokenizer(review):
     tokens = [t for t in tokens if t not in stop_words]     # remove stopwords
     return tokens
 
-corpus = []
+
+corpus = []                 # list of tokenized review strings
+tokenized_words = []        # list containing all words found in corpus (repeats included)
+word_index_map = {}         # contains unique words and their (most recent) correpsonding position in tokenized_words list
+current_index=0             
+
 from nltk.stem.porter import PorterStemmer
 stemmer = PorterStemmer()
+
 for i in range(0, len(reviews)):
-    tokens = my_tokenizer(reviews[i]) 
+#    tokens = my_tokenizer(reviews[i]) 
     text_review = " "
     review = reviews[i]
     review = my_tokenizer(review)
-    review = [stemmer.stem(word) for word in review]
+#    review = [stemmer.stem(word) for word in review] 
+    
+    # cyle through all the words in the tokenized reviews
     for word in review:
+        current_word_count = 1
+        tokenized_words.append(word)
         text_review = text_review + " " + word
+        if word not in word_index_map:
+            word_index_map[word]=current_index
+            current_index += 1
     corpus.append(text_review)
     
+print("There are ",len(set(tokenized_words))," unique tokens.")
 
 from sklearn.feature_extraction.text import CountVectorizer
-cv = CountVectorizer(max_features=10000)
+cv = CountVectorizer(5000)
+# Set max features based on word counts greater than some threshold (TBD)
 
+from collections import Counter
+word_count = Counter(tokenized_words).most_common()      # desc order
+
+# Create sparse matrix
 X = cv.fit_transform(corpus).toarray()
 
-# pos has rating 4 or 5, neutral has 3, neg has 1 or 2
-
+# Assign a value to y based on positive (rating = 4, 5), negative (rating = 1,2), or neutral (rating=3) review
 y = [0]*len(label)
 for index, val in enumerate(label):
     if val==1 or val==2:                # negative review
@@ -309,7 +414,12 @@ for index, val in enumerate(label):
         y[index] = 1                    # positive review
 
 
-from sklearn.cross_validation import train_test_split
+
+# APPLY ML ALGORITHM
+# -----------------------
+
+
+from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
 
 from sklearn.linear_model import LogisticRegression
@@ -325,6 +435,45 @@ print("Confusion matrix: ")
 print(cm)
 print("Accuracy = ",accuracy_score(y_test, y_pred))
 
+
+# Calculate weights (pos/neg) associated with each word
+weights = classifier.coef_[0].tolist()
+
+# set a threshold for positive weights at 1.25
+threshold = 1.25
+print("POSITIVELY ASSOCIATED WORDS:")
+for index, word in enumerate(word_index_map):
+    if weights[index] > threshold:
+        print(word,'\t',round(weights[index],2))
+        
+threshold = -1.25
+print("NEGATIVELY ASSOCOATED WORDS:")
+for index, word in enumerate(word_index_map):
+    if weights[index] < threshold:
+        print(word,'\t',round(weights[index],2))
+
+"""
+# try it out on a new review
+new_review = "This shirt was awful. It did not fit. Cheap quality. The material was itchy. I hated it. I will never wear it. I am so disappointed."
+#new_review = "So disappointed"
+#new_review = "I love it, it's so great, so perfect! Really really nice and so beautiful."
+new_review = "it was meh, nothing special"
+new_review = my_tokenizer(new_review)
+#new_review = [stemmer.stem(word) for word in new_review]
+new_wordstring = ""
+for word in new_review:
+    new_wordstring = new_wordstring + word + " "
+test_corpus = [new_wordstring]
+new_review = cv.transform(test_corpus).toarray()
+prediction = classifier.predict(new_review)
+print("prediction for new review = ",prediction)
+"""
+
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+# WORD CLOUD
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
       
 # Separate into positive ratings (5 and 4) and negative reviews (1 and 2)
 pos_reviews = []
@@ -334,45 +483,46 @@ for i in range(len(reviews)):
     if (y[i] == -1):
         neg_reviews.append(reviews[i])          # 2370 neg reviews
     if (y[i] == 1):
-        pos_reviews.append(reviews[i])          # 17448 pos reviews
+        pos_reviews.append(reviews[i])          # 17448 pos reviews 
 
-
-
-#----------------------
-# WORD CLOUD
-#----------------------
-      
-        
+       
 neg_word_string = ''
+neg_tokens = []
 for rev in neg_reviews:
     tokens = my_tokenizer(rev)
     for word in tokens:
         neg_word_string = neg_word_string + ' ' + word
+        neg_tokens.append(word)
+
+neg_word_count = Counter(neg_tokens).most_common()
+        
    
 from wordcloud import WordCloud
 
 # The words "fit", "dress", "top", "fabric" appear in both, so remove them
-
 wordcloud = WordCloud(height=500, width=500, background_color="white", colormap="inferno", max_words=100, stopwords=['fit', 'dress', 'top', 'fabric']).generate(neg_word_string)
 plt.figure(figsize = (7,7))
 plt.imshow(wordcloud)
 plt.title('Word Cloud for Negative Reviews', fontsize=18)
 plt.axis('off')
+plt.savefig("NegativeWordCloud.pdf")
 plt.show()
 
-"""
 pos_word_string = ''
+pos_tokens = []
 for rev in pos_reviews:
     tokens = my_tokenizer(rev)
     for word in tokens:
         pos_word_string = pos_word_string + ' ' + word
+        pos_tokens.append(word)
+
+pos_word_count = Counter(pos_tokens).most_common()
 
 wordcloud = WordCloud(height=500, width=500, background_color="white", max_words = 100, stopwords=['fit', 'dress', 'top', 'fabric']).generate(pos_word_string)
 plt.figure(figsize = (7,7))
 plt.imshow(wordcloud)
 plt.title('Word Cloud for Positive Reviews', fontsize=18)
 plt.axis('off')
+plt.savefig("PositiveWordCloud.pdf")
 plt.show()
-"""
-
 
