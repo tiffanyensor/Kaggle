@@ -22,3 +22,10 @@ Work done:
 
 Insights/Conclusions:
 -------------------------------------------------
+- Age has a right-skewed distribution with a mean of approximately 43.
+- The distribution of rating is pretty consistent among each age group. 
+- Ratings are mostly positive with over half the reviews having a 5-star rating.
+- Ratings are consistent among each division.
+- The largest department is "Tops", followed by "Bottoms" and then "Dresses". 
+- The most popular "Class" is dresses, followed by "knits" and "blouses".
+- "Jackets" have the highest percent of 5-star ratings, while "trend" has the lowest (ignoring chemises)
