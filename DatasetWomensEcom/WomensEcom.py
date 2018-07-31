@@ -13,6 +13,8 @@ Created on Tue Jul 24 08:55:27 2018
 # Correct for more positive than negative reviews... need to either subsample pos or extrapolate neg or divide by n_words in rev
 # Better to run neutral reviews through? or just pos/neg
 # incorporate title into review
+# Add percents to histogram figure
+# CAP curve for reccommend
 
 #------------------------------------------------------------------------------
 #------------------------------------------------------------------------------
@@ -375,7 +377,6 @@ from nltk.stem.porter import PorterStemmer
 stemmer = PorterStemmer()
 
 for i in range(0, len(reviews)):
-#    tokens = my_tokenizer(reviews[i]) 
     text_review = " "
     review = reviews[i]
     review = my_tokenizer(review)
@@ -393,16 +394,42 @@ for i in range(0, len(reviews)):
     
 print("There are ",len(set(tokenized_words))," unique tokens.")
 
-from sklearn.feature_extraction.text import CountVectorizer
-cv = CountVectorizer(5000)
-# Set max features based on word counts greater than some threshold (TBD)
-
 from collections import Counter
-word_count = Counter(tokenized_words).most_common()      # desc order
+word_count = Counter(tokenized_words)
+#word_count = Counter(tokenized_words).most_common()      # desc order
 
-# Create sparse matrix
-X = cv.fit_transform(corpus).toarray()
+# COUNT VECTORIZER
+# -----------------------
 
+from sklearn.feature_extraction.text import TfidfVectorizer
+tfidf = TfidfVectorizer(min_df=10)    # words should occur in at least __ reviews
+
+# build sparse matrix from the corpus
+X = tfidf.fit_transform(corpus)
+vocab = tfidf.vocabulary_
+
+feature_names = tfidf.get_feature_names()    # same entries as word-index-map
+idf = tfidf.idf_
+tfidf_scores = dict(zip(feature_names, idf))
+
+# store results in a dataframe
+results = pd.DataFrame(feature_names, columns=['Word'])
+results['TFIDF_Score']=idf
+results['Total_Count'] = [word_count[word] for word in results['Word']]
+results['Word_Map_Index'] = [word_index_map[word] for word in results['Word']]
+
+
+def get_top_tfidf_words(word, score, top_n=25):
+    df = pd.DataFrame(feature_names, columns=['Word'])
+    df['TFIDF_Score']=idf
+    sorted=df.sort_values(by='TFIDF_Score', ascending=False)
+    top = sorted[0:top_n]
+    return top
+
+print("Top TFIDF Words:")
+print(get_top_tfidf_words(feature_names, idf))
+
+"""
 # Assign a value to y based on positive (rating = 4, 5), negative (rating = 1,2), or neutral (rating=3) review
 y = [0]*len(label)
 for index, val in enumerate(label):
@@ -412,6 +439,8 @@ for index, val in enumerate(label):
         y[index] = 0
     else:
         y[index] = 1                    # positive review
+"""
+
 
 
 
@@ -419,8 +448,10 @@ for index, val in enumerate(label):
 # -----------------------
 
 
+# TRY LOGISTIC REGRESSION
 from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+
 
 from sklearn.linear_model import LogisticRegression
 classifier = LogisticRegression()
@@ -431,43 +462,32 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
 cm = confusion_matrix(y_test, y_pred)
 
-print("Confusion matrix: ")
+print("Confusion matrix for logistic regression : ")
 print(cm)
-print("Accuracy = ",accuracy_score(y_test, y_pred))
-
+print("Accuracy for logistic regression = ",accuracy_score(y_test, y_pred))
 
 # Calculate weights (pos/neg) associated with each word
 weights = classifier.coef_[0].tolist()
 
-# set a threshold for positive weights at 1.25
-threshold = 1.25
+# set a threshold for positive weights at 1.5
+threshold = 1.5
 print("POSITIVELY ASSOCIATED WORDS:")
-for index, word in enumerate(word_index_map):
+for index, word in enumerate(feature_names):
     if weights[index] > threshold:
         print(word,'\t',round(weights[index],2))
         
-threshold = -1.25
+threshold = -1.5
 print("NEGATIVELY ASSOCOATED WORDS:")
-for index, word in enumerate(word_index_map):
+for index, word in enumerate(feature_names):
     if weights[index] < threshold:
         print(word,'\t',round(weights[index],2))
+        
+print("NEUTRAL WORDS:")
+for index, word in enumerate(feature_names):
+    if weights[index] > -0.01 and weights[index] < 0.01:
+        print(word,'\t',round(weights[index],2))
 
-"""
-# try it out on a new review
-new_review = "This shirt was awful. It did not fit. Cheap quality. The material was itchy. I hated it. I will never wear it. I am so disappointed."
-#new_review = "So disappointed"
-#new_review = "I love it, it's so great, so perfect! Really really nice and so beautiful."
-new_review = "it was meh, nothing special"
-new_review = my_tokenizer(new_review)
-#new_review = [stemmer.stem(word) for word in new_review]
-new_wordstring = ""
-for word in new_review:
-    new_wordstring = new_wordstring + word + " "
-test_corpus = [new_wordstring]
-new_review = cv.transform(test_corpus).toarray()
-prediction = classifier.predict(new_review)
-print("prediction for new review = ",prediction)
-"""
+
 
 #------------------------------------------------------------------------------
 #------------------------------------------------------------------------------
