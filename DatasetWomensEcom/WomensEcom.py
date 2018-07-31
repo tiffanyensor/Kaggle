@@ -469,12 +469,33 @@ weights = classifier.coef_[0].tolist()
 results["LogReg_Weights"] = weights
 results["Abs_LogReg_Weights"] = [abs(number) for number in weights]
 
-top_n= 20
-print("MOST NEGATIVE WORDS:")
-print(results.nlargest(top_n, 'LogReg_Weights').iloc[:,[0,4]])
+top_n= 30
 
-print("MOST POSITIVE WORDS:")
-print(results.nsmallest(top_n, 'LogReg_Weights').iloc[:,[0,4]])
+most_neg =results.nlargest(top_n, 'LogReg_Weights').iloc[:,[0,4]]
+plt.figure(1, figsize = (4,10))
+plt.barh(most_neg["Word"], most_neg["LogReg_Weights"])
+plt.gca().invert_yaxis()
+plt.xlim(0.9*min(most_neg["LogReg_Weights"]), 1.01*max(most_neg["LogReg_Weights"]))
+plt.title("Top "+str(top_n)+" Most Negative Words", fontsize=16)
+plt.xlabel("Magnitude of Logistic Regression Weight")
+plt.savefig("MostNegativeWords.pdf", bbox_inches="tight")
+plt.show() 
+
+
+#print(results.nlargest(top_n, 'LogReg_Weights').iloc[:,[0,4]])
+
+
+most_pos = results.nsmallest(top_n, 'LogReg_Weights').iloc[:,[0,4,5]]
+plt.figure(1, figsize = (4,10))
+plt.barh(most_pos["Word"], most_pos["Abs_LogReg_Weights"])
+plt.xlabel("Magnitude of Logistic Regression Weight")
+plt.gca().invert_yaxis()
+plt.xlim(0.9*min(most_pos["Abs_LogReg_Weights"]), 1.01*max(most_pos["Abs_LogReg_Weights"]))
+#plt.xticks(rotation=90)
+plt.title("Top "+str(top_n)+" Most Positive Words", fontsize=16)
+plt.savefig("MostPositiveWords.pdf", bbox_inches="tight")
+plt.show() 
+
 
 print("MOST NEUTRAL WORDS:")
 print(results.nsmallest(top_n, 'Abs_LogReg_Weights').iloc[:,[0,4]])
