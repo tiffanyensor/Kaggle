@@ -429,7 +429,7 @@ def get_top_tfidf_words(word, score, top_n=25):
 print("Top TFIDF Words:")
 print(get_top_tfidf_words(feature_names, idf))
 
-"""
+
 # Assign a value to y based on positive (rating = 4, 5), negative (rating = 1,2), or neutral (rating=3) review
 y = [0]*len(label)
 for index, val in enumerate(label):
@@ -439,8 +439,6 @@ for index, val in enumerate(label):
         y[index] = 0
     else:
         y[index] = 1                    # positive review
-"""
-
 
 
 
@@ -468,27 +466,22 @@ print("Accuracy for logistic regression = ",accuracy_score(y_test, y_pred))
 
 # Calculate weights (pos/neg) associated with each word
 weights = classifier.coef_[0].tolist()
+results["LogReg_Weights"] = weights
+results["Abs_LogReg_Weights"] = [abs(number) for number in weights]
 
-# set a threshold for positive weights at 1.5
-threshold = 1.5
-print("POSITIVELY ASSOCIATED WORDS:")
-for index, word in enumerate(feature_names):
-    if weights[index] > threshold:
-        print(word,'\t',round(weights[index],2))
-        
-threshold = -1.5
-print("NEGATIVELY ASSOCOATED WORDS:")
-for index, word in enumerate(feature_names):
-    if weights[index] < threshold:
-        print(word,'\t',round(weights[index],2))
-        
-print("NEUTRAL WORDS:")
-for index, word in enumerate(feature_names):
-    if weights[index] > -0.01 and weights[index] < 0.01:
-        print(word,'\t',round(weights[index],2))
+top_n= 20
+print("MOST NEGATIVE WORDS:")
+print(results.nlargest(top_n, 'LogReg_Weights').iloc[:,[0,4]])
+
+print("MOST POSITIVE WORDS:")
+print(results.nsmallest(top_n, 'LogReg_Weights').iloc[:,[0,4]])
+
+print("MOST NEUTRAL WORDS:")
+print(results.nsmallest(top_n, 'Abs_LogReg_Weights').iloc[:,[0,4]])
 
 
 
+"""
 #------------------------------------------------------------------------------
 #------------------------------------------------------------------------------
 # WORD CLOUD
@@ -528,6 +521,9 @@ plt.axis('off')
 plt.savefig("NegativeWordCloud.pdf")
 plt.show()
 
+"""
+
+"""
 pos_word_string = ''
 pos_tokens = []
 for rev in pos_reviews:
@@ -545,4 +541,4 @@ plt.title('Word Cloud for Positive Reviews', fontsize=18)
 plt.axis('off')
 plt.savefig("PositiveWordCloud.pdf")
 plt.show()
-
+"""
